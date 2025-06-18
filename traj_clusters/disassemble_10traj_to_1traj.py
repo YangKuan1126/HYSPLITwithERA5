@@ -9,6 +9,7 @@ disassemble_10traj_to_1traj.py   – 2025-06-21 directory-first 版
 • 年份优先取最外层纯数字四位目录；若目录无年份则解析文件名。
 • 兼容文件名中的 10 位 YYYYMMDDHH、8 位 YYYYMMDD / YYMMDDHH、6-7 位 YYMMDD 等。
 • -r/--range 可过滤年份，如 -r 2019-2020。
+
 """
 
 from pathlib import Path
