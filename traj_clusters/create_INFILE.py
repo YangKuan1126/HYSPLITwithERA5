@@ -1,34 +1,37 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-create_INFILE.py – 每行一个文件（适配 YYMMDDHH 文件名）
-===========================================================
-生成 HYSPLIT `cluster.exe` 所需 **INFILE**：**每个轨迹文件一行**，无文件总数。 
+create_INFILE.py – 每行一个文件（仅保留指定起报小时）
+====================================================
+生成 HYSPLIT `cluster.exe` 所需 INFILE，并可通过 --keep-hours
+参数筛选文件名末尾 YYMMDDHH 的 “HH” 字段（默认 06 与 18）。
 
-* 月份解析仍按 YYMMDDHH → MM。
-* 兼容 Python 3.7–3.9（无联合类型语法）。
-* 可通过 `--pattern` 过滤文件名。
-使用范例：
-py -3.9 create_INFILE.py --root F:\ERA5_pressure_level\traj_points --outfile C:\hysplit\cluster\working\INFILE --years 2019 2020 --months 1 2 3 --ref-subdir P1
+用法示例：
+py -3.9 create_INFILE.py ^
+    --root F:\ERA5_pressure_level\traj_points ^
+    --outfile C:\hysplit\cluster\working\INFILE ^
+    --years 1951 2020 ^
+    --months 1 ^
+    --ref-subdir P1 ^
+    --keep-hours 06 18
 """
 
 from __future__ import annotations
-
 import argparse
 import pathlib
 import re
 import sys
-from typing import List, Optional
+from typing import List, Optional, Set
 
-DIGITS8_RE = re.compile(r"(\d{8})$")  # 匹配结尾 8 位数字 (YYMMDDHH)
+DIGITS8_RE = re.compile(r"(\d{8})$")  # 结尾 YYMMDDHH
 
-# ----------------- 工具函数 -----------------
 
-def _extract_month(stem: str) -> Optional[int]:
+def _extract_mm_hh(stem: str) -> tuple[Optional[int], Optional[str]]:
     m = DIGITS8_RE.search(stem)
     if not m:
-        return None
-    return int(m.group(1)[2:4])  # YY **MM** DDHH
+        return None, None
+    s = m.group(1)
+    return int(s[2:4]), s[6:8]  # (MM, HH)
 
 
 def _collect_traj_files(
@@ -36,7 +39,8 @@ def _collect_traj_files(
     start_year: int,
     end_year: int,
     point: str,
-    months: set[int],
+    months: Set[int],
+    keep_hours: Set[str],
     pattern: str,
 ) -> List[pathlib.Path]:
     out: List[pathlib.Path] = []
@@ -48,14 +52,16 @@ def _collect_traj_files(
         for f in sorted(d.glob(pattern)):
             if not f.is_file():
                 continue
-            if months:
-                mm = _extract_month(f.stem)
-                if mm is None or mm not in months:
-                    continue
+            mm, hh = _extract_mm_hh(f.stem)
+            if mm is None or hh is None:
+                continue
+            if months and mm not in months:
+                continue
+            if hh not in keep_hours:
+                continue
             out.append(f.resolve())
     return out
 
-# ----------------- 主入口 -----------------
 
 def main(argv: Optional[List[str]] = None) -> None:
     ap = argparse.ArgumentParser(
@@ -65,10 +71,21 @@ def main(argv: Optional[List[str]] = None) -> None:
     ap.add_argument("--root", required=True, help="轨迹根目录 root/year/point/")
     ap.add_argument("--outfile", required=True, help="输出 INFILE 路径")
     ap.add_argument("--years", nargs=2, type=int, metavar=("START", "END"), required=True)
-    ap.add_argument("--months", nargs="*", type=int, default=[], help="目标月份 (1–12)")
-    ap.add_argument("--ref-subdir", default="P1", help="点位子目录")
+    ap.add_argument(
+        "--months", nargs="*", type=int, default=[], help="目标月份 (1–12); 为空=全年"
+    )
+    ap.add_argument("--ref-subdir", default="P1", help="点位子目录，如 P1")
     ap.add_argument("--pattern", default="*", help="文件通配符 (默认 '*')")
+    ap.add_argument(
+        "--keep-hours",
+        nargs="+",
+        default=["06", "18"],
+        metavar="HH",
+        help="保留的起报小时 (两位)，默认 06 18",
+    )
     args = ap.parse_args(argv)
+
+    keep_hours = {h.zfill(2) for h in args.keep_hours}
 
     root = pathlib.Path(args.root)
     if not root.exists():
@@ -80,6 +97,7 @@ def main(argv: Optional[List[str]] = None) -> None:
         end_year=args.years[1],
         point=args.ref_subdir,
         months=set(map(int, args.months)),
+        keep_hours=keep_hours,
         pattern=args.pattern,
     )
     if not files:
