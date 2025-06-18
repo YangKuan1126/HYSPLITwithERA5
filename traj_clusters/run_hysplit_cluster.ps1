@@ -10,8 +10,8 @@
       .\run_hysplit_cluster.ps1 `
           -TrajRoot  "F:\ERA5_pressure_level\traj_points" `
           -YearStart 1951 -YearEnd 2020 `
-          -Months    1 `
-          -Points    P1 `
+          -Months 1 `
+          -Points P1,P2,P3 `
           -KeepHours 06,18
   ─────────────────────────────────────────────────────────
 #>
