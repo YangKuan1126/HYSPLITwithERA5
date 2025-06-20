@@ -22,7 +22,7 @@ def select_best_k(path, pct_abs_thresh=10.0, pct_jump_thresh=5.0):
 
     # 若未找到，则选最大 DELPCT 点对应 K
     idx = np.argmax(delpct)
-    return ks[idx]
+    return ks[idx]+1
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
