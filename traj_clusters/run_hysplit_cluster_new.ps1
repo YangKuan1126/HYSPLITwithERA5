@@ -88,22 +88,16 @@ foreach ($month in $Months) {
         # 8. 生成 tmp & 调用 trajmean
         cd $scriptsDir
         & $pythonExe $pyVersion create_traj_tmp.py -d $workDir
-        # 9. 执行 trajmean 分析 & 删除 tmp 文件
+        # 9. 执行 trajmean 分析 & 删除 tmp 文件（使用 listfile 模式，不传全路径）
         cd $workDir
         $meanFiles = @()  # 存储本次生成的 mean 文件
+
         Get-ChildItem -Path $workDir -Filter 'TRAJ.INP.C*' | ForEach-Object {
             $cxfile = $_.FullName
             $cxname = $_.Name
             Write-Host "[trajmean] 处理: $cxname" -ForegroundColor Magenta
 
-            $paths = Get-Content $cxfile | Where-Object { $_ -match '\\' } | ForEach-Object { $_.TrimEnd() }
-            if ($paths.Count -eq 0) {
-                Write-Warning "[trajmean] 未找到路径: $cxname"
-                return
-            }
-
-            $joined = $paths -join '+'
-
+            # 直接用 listfile 模式：-i+“TRAJ.INP.C1_2” 即可
             if ($cxname -match 'TRAJ\.INP\.(C\d+_\d+)') {
                 $core = $matches[1]
             } else {
@@ -111,13 +105,18 @@ foreach ($month in $Months) {
             }
             $output = "${core}_mean"
 
-            $cmd = "$trajmeanExe -i$joined -o$output -m0 -v$trajmeanV"
+            # 这里不拼接全路径，只传文件名，加上“+”前缀
+            $cmd = "$trajmeanExe -i+`"$cxname`" -o$output -m0 -v$trajmeanV"
             Write-Host "    CMD: $cmd"
             iex $cmd
-            $meanFiles += $output  # 添加到列表
+
+            # 收集输出文件名，供后续 merglist 使用
+            $meanFiles += $output
+
             # 🔥 新增：删除所有参与本次 trajmean 的 _tmp 文件
-            $paths | ForEach-Object {
-                $tmp = $_
+            #    仍然用原来方式删除 tmp 文件
+            Get-Content $cxfile | Where-Object { $_ -match '\\' } | ForEach-Object {
+                $tmp = $_.TrimEnd()
                 if (Test-Path $tmp) {
                     Write-Host "    删除 temp 文件: $tmp" -ForegroundColor Yellow
                     Remove-Item $tmp -Force -Verbose
@@ -126,6 +125,7 @@ foreach ($month in $Months) {
                 }
             }
         }
+
 
         # 10. 使用 merglist.exe 合并所有 mean 文件
         cd $workDir
