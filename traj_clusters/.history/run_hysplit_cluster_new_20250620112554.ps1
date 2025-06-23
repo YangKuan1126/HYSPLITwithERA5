@@ -76,7 +76,7 @@ foreach ($month in $Months) {
         }
         $select_k = Join-Path $scriptsDir 'select_K.py'
         $file_tsv = Join-Path $workDir 'DELPCT'
-        $Kstr = & $pythonExe $pyVersion $select_k $file_tsv --min 1 --max 15 --S 1.0 --online
+        $Kstr = & $pythonExe $pyVersion $select_k $file_tsv
         $K = [int]$Kstr.Trim()
         Write-Host "[$pt] 采用 K=$K" -ForegroundColor Yellow
         & "$execDir\cluslist.exe" "-iCLUSTER" "-n$K" "-oCLUSLIST"
