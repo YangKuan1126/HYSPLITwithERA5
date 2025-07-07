@@ -9,3 +9,5 @@
 1991到2020年1月P1一共有3680个文件，但是经过上述的设置之后
 cluster.exe会读取的实际数目为1732,这样可以大大减少运行的压力
 内存的占用也比较合理，cluster.exe占用900m的内存
+
+.\run_hysplit_cluster_new.ps1 -TrajRoot  "F:\ERA5_pressure_level\traj_points" -YearStart 1979 -YearEnd 2020 -Months 7 -Points P1 -KeepHours 06,18

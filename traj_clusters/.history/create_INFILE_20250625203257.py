@@ -70,7 +70,7 @@ def get_first241_q(path: pathlib.Path) -> tuple[float, float]:
     # 找到表头索引
     header_idx = None
     for i, line in enumerate(lines):
-        if line.strip().startswith("2 PRESSURE SPCHUMID"):
+        if line.strip().startswith("3 PRESSURE MIXDEPTH SPCHUMID"):
             header_idx = i
             break
     if header_idx is None:
